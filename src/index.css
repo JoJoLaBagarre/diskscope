@@ -107,6 +107,10 @@ body {
 button {
   font-family: inherit;
   font-size: inherit;
+  /* Buttons don't inherit color by default; without this, any button that
+     doesn't set its own color (e.g. .volume-card) falls back to the UA text
+     color and stays dark in dark mode. */
+  color: inherit;
   cursor: pointer;
 }
 
