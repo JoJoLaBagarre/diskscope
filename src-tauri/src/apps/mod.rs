@@ -169,6 +169,11 @@ pub fn uninstall_by_id(id: &str) -> UninstallOutcome {
 }
 
 /// Shared helper: build a readable command preview from program + args.
+// Only consumed by the Windows uninstaller today; the Linux/macOS managers (M5)
+// will use it too. Until then it's unused on those targets, so allow dead_code
+// there to keep `clippy -D warnings` green — without masking real dead code on
+// Windows, where it is used.
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 pub(crate) fn preview_command(program: &str, args: &[String]) -> String {
     let mut parts = Vec::with_capacity(args.len() + 1);
     parts.push(quote_if_needed(program));
@@ -178,6 +183,7 @@ pub(crate) fn preview_command(program: &str, args: &[String]) -> String {
     parts.join(" ")
 }
 
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 fn quote_if_needed(s: &str) -> String {
     if s.contains(' ') || s.contains('"') {
         format!("\"{}\"", s.replace('"', "\\\""))

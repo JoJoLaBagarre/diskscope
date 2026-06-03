@@ -65,7 +65,11 @@ jobs:
         run: cargo test
 
   # ---------------------------------------------------------------------------
-  # Cross-platform build matrix: ensure the app compiles & bundles everywhere.
+  # Cross-platform compile check: ensure the app builds on every OS. We pass
+  # --no-bundle so it needs no code-signing key — the signed installers and
+  # updater artifacts are produced by release.yml, which has the secrets.
+  # (With createUpdaterArtifacts enabled, a full `tauri build` would fail here
+  # demanding TAURI_SIGNING_PRIVATE_KEY.)
   # ---------------------------------------------------------------------------
   build:
     strategy:
@@ -106,16 +110,8 @@ jobs:
 
       - run: npm ci
 
-      - name: Build (tauri)
-        run: npm run tauri build
-
-      - name: Upload bundles
-        uses: actions/upload-artifact@v4
-        with:
-          name: diskscope-${{ matrix.name }}
-          path: |
-            src-tauri/target/release/bundle/**/*
-          if-no-files-found: ignore
+      - name: Build (tauri, compile-only)
+        run: npm run tauri build -- --no-bundle
 
   # ---------------------------------------------------------------------------
   # Dependency vulnerability audit (advisory DB for crates + npm).
