@@ -96,6 +96,17 @@ windows / ubuntu / macos matrix.
 ¹ Portable code, validated by CI compilation; runtime confirmed during porting.
 ² Planned; currently returns a clear "not yet implemented" message.
 
+## Contributing
+
+Contributions are welcome! See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the
+dev setup, project layout, and the quality gates every change must pass
+(`cargo fmt`, `clippy -D warnings`, `cargo test`, `tsc --noEmit`). CI runs these
+on Windows, Linux and macOS for every pull request.
+
+- 🐛 Found a bug or have an idea? [Open an issue](../../issues/new/choose).
+- 🔒 Security vulnerability? Please follow [SECURITY.md](SECURITY.md) — do not
+  open a public issue.
+
 ## Releasing
 
 Releases are built and signed automatically by CI when a `v*` tag is pushed,

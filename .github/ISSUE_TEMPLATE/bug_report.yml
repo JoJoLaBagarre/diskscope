@@ -1,0 +1,57 @@
+name: "🐛 Bug report"
+description: Report something that isn't working correctly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill in the fields
+        below so we can reproduce and fix it.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, and what you expected instead.
+      placeholder: When I delete many files at once, …
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we trigger it?
+      placeholder: |
+        1. Scan drive C:
+        2. Select 50 files in the "Largest" tab
+        3. Click "Delete selection"
+        4. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: DiskScope version
+      description: Shown in Options → Updates, or the About tab.
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows 11
+        - Windows 10
+        - Linux
+        - macOS
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: |
+        Anything that helps — a screenshot, an error message, or console output.
+        (Optional.)
+    validations:
+      required: false
