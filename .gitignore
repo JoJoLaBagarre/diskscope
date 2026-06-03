@@ -24,7 +24,9 @@ dist-ssr
 *.sw?
 
 # Tauri updater signing keys — NEVER commit these
+# (the public key lives in src-tauri/tauri.conf.json; no key files belong in git)
 *.key
+*.pub
 .tauri-keys/
 
 # Internal maintainer release runbook (kept local, not published)
