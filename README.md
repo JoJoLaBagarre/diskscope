@@ -110,7 +110,8 @@ on Windows, Linux and macOS for every pull request.
 ## Releasing
 
 Releases are built and signed automatically by CI when a `v*` tag is pushed,
-producing the cross-platform installers and the signed update manifest.
+producing the cross-platform installers and the signed update manifest. See the
+[CHANGELOG](CHANGELOG.md) for what's in each release.
 
 ## License
 
