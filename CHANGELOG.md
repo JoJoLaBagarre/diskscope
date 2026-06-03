@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Add changes here as they land; they roll into the next release. -->
 
+## [1.0.1] - 2026-06-03
+
+### Security
+
+- **Uninstall is identified by an opaque id, not a command.** The IPC layer only
+  passes an app id; the uninstall command is re-derived from the OS on the
+  backend and never taken from the frontend, so a compromised WebView cannot use
+  it to run an arbitrary (possibly elevated) program. Registry lookups also
+  reject ids that could traverse to another key.
+- **Strict Content-Security-Policy** is now enforced (it was disabled),
+  blocking inline scripts — the primary defense against an XSS escalating to
+  code execution.
+- **PowerShell is invoked by absolute path**, so a planted `powershell.exe`
+  earlier on `PATH` (or in the working directory) can't be run in its place.
+- **Least privilege** — removed the unused `opener:allow-open-path` capability,
+  scoped CI's `GITHUB_TOKEN` to `contents: read`, and added a dependency audit
+  job (`npm audit` + `cargo audit`).
+
+### Fixed
+
+- **Dark mode** — disk names and the free-space figure on the Disk Analysis tab
+  stayed dark, because color-less `<button>`s didn't inherit the theme color.
+- **Microsoft Store uninstall** — the executed command now matches the previewed
+  one exactly; the `appx::` routing prefix was leaking into `Remove-AppxPackage`,
+  which both diverged from the confirmation and failed to match the package.
+
 ## [1.0.0] - 2026-06-03
 
 First public release.
@@ -51,5 +77,6 @@ First public release.
 - Linux and macOS application listing/uninstall are not yet implemented (the
   scanner and search are cross-platform). See the open `help wanted` issues.
 
-[Unreleased]: https://github.com/JoJoLaBagarre/diskscope/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/JoJoLaBagarre/diskscope/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/JoJoLaBagarre/diskscope/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/JoJoLaBagarre/diskscope/releases/tag/v1.0.0
