@@ -46,6 +46,10 @@ pub struct ScanResult {
     pub file_count: u64,
     pub dir_count: u64,
     pub errors: u64,
+    /// Bounded sample of paths that could not be read (permission denied, etc.).
+    /// `#[serde(default)]` keeps older caches (written before this field) loadable.
+    #[serde(default)]
+    pub inaccessible: Vec<String>,
     pub scanned_at: u64,
 }
 
@@ -57,6 +61,8 @@ pub struct ScanSummary {
     pub file_count: u64,
     pub dir_count: u64,
     pub errors: u64,
+    /// Bounded sample of skipped paths, surfaced to the user.
+    pub inaccessible: Vec<String>,
     pub scanned_at: u64,
     pub from_cache: bool,
 }
@@ -143,7 +149,13 @@ pub fn scan<F: FnMut(&Progress)>(
     if !root.exists() {
         return Err(ScanError::NotFound(root.display().to_string()));
     }
-    let (mut nodes, file_count, dir_count, errors) = walker::walk(root, cancel, on_progress)?;
+    let walker::WalkOutput {
+        mut nodes,
+        files: file_count,
+        dirs: dir_count,
+        errors,
+        inaccessible,
+    } = walker::walk(root, cancel, on_progress)?;
     tree::aggregate_sizes(&mut nodes, 0);
     let total_size = nodes.first().map(|n| n.size).unwrap_or(0);
     Ok(ScanResult {
@@ -153,6 +165,7 @@ pub fn scan<F: FnMut(&Progress)>(
         file_count,
         dir_count,
         errors,
+        inaccessible,
         scanned_at: now_secs(),
         nodes,
     })
@@ -166,6 +179,7 @@ impl ScanResult {
             file_count: self.file_count,
             dir_count: self.dir_count,
             errors: self.errors,
+            inaccessible: self.inaccessible.clone(),
             scanned_at: self.scanned_at,
             from_cache,
         }
@@ -337,6 +351,34 @@ mod tests {
             file_count: 3,
             dir_count: 2,
             errors: 0,
+            inaccessible: Vec::new(),
+            scanned_at: 0,
+        }
+    }
+
+    // root(0) ─ a(1) ─ b(2) ─ c(3) ─ f(4, file, 50)
+    // A single deep chain; every directory aggregates the same 50 bytes.
+    fn deep_sample() -> ScanResult {
+        let mut nodes = vec![
+            node("root", 50, true, None),
+            node("a", 50, true, Some(0)),
+            node("b", 50, true, Some(1)),
+            node("c", 50, true, Some(2)),
+            node("f", 50, false, Some(3)),
+        ];
+        nodes[0].children = vec![1];
+        nodes[1].children = vec![2];
+        nodes[2].children = vec![3];
+        nodes[3].children = vec![4];
+        ScanResult {
+            root: 0,
+            root_path: PathBuf::from("root"),
+            nodes,
+            total_size: 50,
+            file_count: 1,
+            dir_count: 4,
+            errors: 0,
+            inaccessible: Vec::new(),
             scanned_at: 0,
         }
     }
@@ -401,5 +443,38 @@ mod tests {
         assert!(r.node_path(3).is_none());
         r.mark_trashed(3);
         assert_eq!(r.total_size, 80);
+    }
+
+    #[test]
+    fn mark_trashed_subtracts_from_every_ancestor() {
+        // A 4-deep chain exercises the `while let Some(p)` ancestor walk past the
+        // 2-level depth of `sample()`: removing the leaf must zero every dir.
+        let mut r = deep_sample();
+        r.mark_trashed(4);
+        assert!(r.nodes[4].removed);
+        for i in 0..4 {
+            assert_eq!(r.nodes[i].size, 0, "ancestor {i} fully subtracted");
+        }
+        assert_eq!(r.total_size, 0);
+        assert!(
+            !r.nodes[3].children.contains(&4),
+            "leaf detached from its dir"
+        );
+    }
+
+    #[test]
+    fn mark_trashed_on_root_does_not_underflow() {
+        // The root has no parent, so the ancestor loop is empty and the total is
+        // recomputed from the root's own size. Must not panic or wrap.
+        let mut r = sample();
+        r.mark_trashed(0);
+        assert!(r.nodes[0].removed);
+        assert_eq!(r.total_size, r.nodes[0].size);
+    }
+
+    #[test]
+    fn node_path_out_of_range_is_none() {
+        let r = sample();
+        assert!(r.node_path(999).is_none());
     }
 }

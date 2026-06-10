@@ -14,6 +14,11 @@ use crate::scan::{self, ItemKind, ScanEntry, ScanSummary, SortKey, VolumeInfo};
 use crate::search::{self, SearchFilters, SearchHit, SearchIndex};
 use crate::state::AppState;
 
+/// Upper bound on how many rows a single query command may return. Far above any
+/// real UI need (tables virtualize, the treemap caps at a few hundred), it just
+/// stops a malformed or hostile `invoke` from forcing a giant allocation.
+const MAX_QUERY_LIMIT: usize = 100_000;
+
 /// Runtime/environment information. The frontend calls this on startup to
 /// confirm the Rust IPC bridge is live and to populate the About view.
 #[derive(Debug, Serialize)]
@@ -92,15 +97,17 @@ pub fn start_scan(app: AppHandle, root: String) -> Result<(), String> {
 
         match result {
             Ok(res) => {
-                let _ = scan::cache::save(&path, &res);
+                if let Err(e) = scan::cache::save(&path, &res) {
+                    tracing::warn!("failed to cache scan for {}: {e}", path.display());
+                }
                 let summary = res.summary(false);
-                *state.scan.write().unwrap() = Some(res);
+                *state.scan.write() = Some(res);
                 // Invalidate the derived search index; rebuilt lazily on demand.
-                *state.search.write().unwrap() = None;
+                *state.search.write() = None;
                 // (Re)arm the staleness watcher for this scan generation.
                 state.stale.store(false, Ordering::SeqCst);
                 let w = search::watcher::watch(handle.clone(), &path, state.stale.clone());
-                *state.watcher.lock().unwrap() = w;
+                *state.watcher.lock() = w;
                 let _ = handle.emit("scan://done", summary);
             }
             Err(scan::ScanError::Cancelled) => {
@@ -125,12 +132,7 @@ pub fn cancel_scan(state: State<AppState>) {
 
 #[tauri::command]
 pub fn scan_summary(state: State<AppState>) -> Option<ScanSummary> {
-    state
-        .scan
-        .read()
-        .unwrap()
-        .as_ref()
-        .map(|r| r.summary(false))
+    state.scan.read().as_ref().map(|r| r.summary(false))
 }
 
 /// Restore a cached scan for `root` into state, returning its summary if found.
@@ -138,7 +140,7 @@ pub fn scan_summary(state: State<AppState>) -> Option<ScanSummary> {
 pub fn try_load_cache(state: State<AppState>, root: String) -> Option<ScanSummary> {
     let res = scan::cache::load(&PathBuf::from(&root))?;
     let summary = res.summary(true);
-    *state.scan.write().unwrap() = Some(res);
+    *state.scan.write() = Some(res);
     Some(summary)
 }
 
@@ -151,7 +153,8 @@ pub fn get_children(
     limit: usize,
     offset: usize,
 ) -> Result<Vec<ScanEntry>, String> {
-    let guard = state.scan.read().unwrap();
+    let limit = limit.min(MAX_QUERY_LIMIT);
+    let guard = state.scan.read();
     let res = guard.as_ref().ok_or("Aucun scan en mémoire")?;
     Ok(res.children(parent, sort, desc, limit, offset))
 }
@@ -162,7 +165,8 @@ pub fn get_largest(
     kind: ItemKind,
     limit: usize,
 ) -> Result<Vec<ScanEntry>, String> {
-    let guard = state.scan.read().unwrap();
+    let limit = limit.min(MAX_QUERY_LIMIT);
+    let guard = state.scan.read();
     let res = guard.as_ref().ok_or("Aucun scan en mémoire")?;
     Ok(res.largest(kind, limit))
 }
@@ -177,14 +181,14 @@ pub fn reveal_path(app: AppHandle, path: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn trash_path(state: State<AppState>, id: usize) -> Result<(), String> {
-    let mut guard = state.scan.write().unwrap();
+    let mut guard = state.scan.write();
     let res = guard.as_mut().ok_or("Aucun scan en mémoire")?;
     res.trash(id)?;
     // The index references node ids that still exist (entry is tombstoned), but
     // its cached copy would still list the trashed item — drop it so the next
     // search rebuilds from the patched tree.
     drop(guard);
-    *state.search.write().unwrap() = None;
+    *state.search.write() = None;
     Ok(())
 }
 
@@ -215,7 +219,7 @@ struct TrashDonePayload {
 pub fn start_trash(app: AppHandle, ids: Vec<usize>) -> Result<(), String> {
     {
         let state = app.state::<AppState>();
-        if state.scan.read().unwrap().is_none() {
+        if state.scan.read().is_none() {
             return Err("Aucun scan en mémoire".into());
         }
         if state
@@ -244,7 +248,7 @@ pub fn start_trash(app: AppHandle, ids: Vec<usize>) -> Result<(), String> {
 
             // 1) Look up the path under a brief read lock, then release it.
             let path = {
-                let guard = state.scan.read().unwrap();
+                let guard = state.scan.read();
                 guard.as_ref().and_then(|r| r.node_path(id))
             };
             let Some(path) = path else {
@@ -266,7 +270,7 @@ pub fn start_trash(app: AppHandle, ids: Vec<usize>) -> Result<(), String> {
             match trash::delete(&path) {
                 Ok(()) => {
                     // 3) Patch the tree under a short write lock.
-                    let mut guard = state.scan.write().unwrap();
+                    let mut guard = state.scan.write();
                     if let Some(r) = guard.as_mut() {
                         r.mark_trashed(id);
                     }
@@ -277,7 +281,7 @@ pub fn start_trash(app: AppHandle, ids: Vec<usize>) -> Result<(), String> {
         }
 
         // The cached search index now lists trashed items — rebuild lazily.
-        *state.search.write().unwrap() = None;
+        *state.search.write() = None;
         state.trashing.store(false, Ordering::SeqCst);
 
         let _ = handle.emit(
@@ -332,7 +336,7 @@ pub struct SearchStats {
 #[tauri::command]
 pub fn search_stats(state: State<AppState>) -> Option<SearchStats> {
     ensure_index(&state)?;
-    let guard = state.search.read().unwrap();
+    let guard = state.search.read();
     guard.as_ref().map(|idx| SearchStats {
         indexed: idx.len(),
         stale: state.stale.load(Ordering::SeqCst),
@@ -354,6 +358,7 @@ pub fn search(
     limit: usize,
 ) -> Result<Vec<SearchHit>, String> {
     ensure_index(&state).ok_or("Aucun scan en mémoire")?;
+    let limit = limit.min(MAX_QUERY_LIMIT);
 
     let filters = SearchFilters {
         kind,
@@ -366,7 +371,7 @@ pub fn search(
         modified_before,
     };
 
-    let guard = state.search.read().unwrap();
+    let guard = state.search.read();
     let idx = guard.as_ref().ok_or("Index indisponible")?;
     Ok(idx.query(&query, &filters, limit))
 }
@@ -374,14 +379,14 @@ pub fn search(
 /// Ensure the search index exists, building it from the current scan if needed.
 /// Returns `Some(())` when an index is available afterwards.
 fn ensure_index(state: &State<AppState>) -> Option<()> {
-    if state.search.read().unwrap().is_some() {
+    if state.search.read().is_some() {
         return Some(());
     }
-    let scan_guard = state.scan.read().unwrap();
+    let scan_guard = state.scan.read();
     let res = scan_guard.as_ref()?;
     let idx = SearchIndex::build(res);
     drop(scan_guard);
-    *state.search.write().unwrap() = Some(idx);
+    *state.search.write() = Some(idx);
     Some(())
 }
 
