@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Add changes here as they land; they roll into the next release. -->
 
+## [1.1.1] - 2026-06-10
+
+### Added
+
+- **Faster scans** — per-file size/metadata is now computed on jwalk's parallel
+  worker pool instead of the consumer thread. Benchmarked on a 13.6 GB / ~31k-entry
+  tree: **~36% faster** (≈1.25 s → 0.80 s), with byte-identical results.
+- **Inaccessible paths surfaced** — a scan now reports a bounded sample of the
+  locations it couldn't read (permission denied, etc.) as a tooltip on the
+  "skipped" chip, instead of only a count.
+- **Logging** via `tracing`, silent unless `RUST_LOG` is set.
+- **Frontend test suite** (Vitest + Testing Library) and **ESLint + Prettier**,
+  all run in CI; plus more Rust unit tests for the cache, uninstall-string parsing
+  and tree patching.
+
+### Changed
+
+- **Uninstall strings are tokenized by the OS** (`CommandLineToArgvW`) rather than
+  a hand-rolled splitter, so quoting/escaping matches Windows exactly.
+- **Non-poisoning locks** (`parking_lot`) — a panicked background thread can no
+  longer wedge every later command.
+- Defensive bounds on query result size and search-query length.
+
+### Fixed
+
+- **Silent failures surfaced** — drive enumeration now shows an error banner, and
+  the search "stale" listener no longer swallows rejections.
+- **Accessibility** — keyboard-operable treemap tiles, `aria-label`s on icon-only
+  buttons, `role="progressbar"` on progress bars, and focus-trapped modals.
+
 ## [1.0.1] - 2026-06-03
 
 ### Security
@@ -77,6 +107,7 @@ First public release.
 - Linux and macOS application listing/uninstall are not yet implemented (the
   scanner and search are cross-platform). See the open `help wanted` issues.
 
-[Unreleased]: https://github.com/JoJoLaBagarre/diskscope/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/JoJoLaBagarre/diskscope/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/JoJoLaBagarre/diskscope/compare/v1.0.1...v1.1.1
 [1.0.1]: https://github.com/JoJoLaBagarre/diskscope/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/JoJoLaBagarre/diskscope/releases/tag/v1.0.0
