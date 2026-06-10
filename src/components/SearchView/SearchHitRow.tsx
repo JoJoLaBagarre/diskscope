@@ -30,10 +30,20 @@ export function SearchHitRow({
       <div className="hit-size">{fmt.bytes(hit.size)}</div>
       <div className="hit-mtime">{fmt.date(hit.mtime)}</div>
       <div className="entry-actions">
-        <button className="icon-btn" title={t("action.reveal")} onClick={() => onReveal(hit)}>
+        <button
+          className="icon-btn"
+          title={t("action.reveal")}
+          aria-label={t("action.reveal")}
+          onClick={() => onReveal(hit)}
+        >
           <RevealIcon />
         </button>
-        <button className="icon-btn danger" title={t("action.trash")} onClick={() => onTrash(hit)}>
+        <button
+          className="icon-btn danger"
+          title={t("action.trash")}
+          aria-label={t("action.trash")}
+          onClick={() => onTrash(hit)}
+        >
           <TrashIcon />
         </button>
       </div>

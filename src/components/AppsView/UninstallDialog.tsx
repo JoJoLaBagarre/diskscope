@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import type { InstalledApp } from "../../types/models";
 import { useTranslation } from "../../i18n/context";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 /** Confirmation modal shown before any uninstall. Displays the exact command
  *  that will run and whether elevation (admin) will be requested. Nothing is
@@ -17,6 +18,7 @@ export function UninstallDialog({
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
+  const ref = useFocusTrap<HTMLDivElement>();
 
   // Escape closes the dialog (unless an uninstall is already in flight).
   useEffect(() => {
@@ -29,8 +31,17 @@ export function UninstallDialog({
 
   return (
     <div className="modal-backdrop" onClick={busy ? undefined : onCancel}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2 className="modal-title">{t("uninstall.title", { name: app.name })}</h2>
+      <div
+        className="modal"
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="uninstall-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="modal-title" id="uninstall-title">
+          {t("uninstall.title", { name: app.name })}
+        </h2>
         <p className="modal-text">{t("uninstall.body")}</p>
 
         <div className="cmd-preview">

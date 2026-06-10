@@ -32,7 +32,13 @@ export function ScanProgress({
           </div>
         </div>
 
-        <div className="progress-track">
+        <div
+          className="progress-track"
+          role="progressbar"
+          aria-label={t("scan.progressTitle")}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
           <div className="progress-indeterminate" />
         </div>
 

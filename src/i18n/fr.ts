@@ -39,6 +39,7 @@ export const fr: Record<TranslationKey, string> = {
   "picker.outOf": "sur {size}",
   "picker.browse": "Parcourir un dossier…",
   "picker.cancelled": "Analyse annulée.",
+  "picker.volumesError": "Impossible de lister les disques. Utilisez « Parcourir un dossier ».",
 
   // ----- scan progress -----
   "scan.progressTitle": "Analyse en cours…",
@@ -70,6 +71,7 @@ export const fr: Record<TranslationKey, string> = {
   "explorer.empty": "Dossier vide.",
   "treemap.hint": "Cliquez un dossier pour zoomer",
   "treemap.emptyLevel": "Rien à afficher à ce niveau.",
+  "treemap.tileLabel": "{name}, {size}",
 
   // ----- row actions -----
   "action.reveal": "Révéler dans l'explorateur",

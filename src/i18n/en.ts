@@ -40,6 +40,7 @@ export const en = {
   "picker.outOf": "of {size}",
   "picker.browse": "Browse a folder…",
   "picker.cancelled": "Scan cancelled.",
+  "picker.volumesError": "Could not list drives. Use “Browse a folder” instead.",
 
   // ----- scan progress -----
   "scan.progressTitle": "Analyzing…",
@@ -71,6 +72,7 @@ export const en = {
   "explorer.empty": "Empty folder.",
   "treemap.hint": "Click a folder to zoom in",
   "treemap.emptyLevel": "Nothing to show at this level.",
+  "treemap.tileLabel": "{name}, {size}",
 
   // ----- row actions -----
   "action.reveal": "Reveal in explorer",
@@ -184,8 +186,7 @@ export const en = {
   // ----- about -----
   "about.tagline": "Disk space analysis, search and uninstallation — {version}",
   "about.featScan": "Disk Analysis",
-  "about.featScanDesc":
-    "Parallel traversal, largest items, tree explorer and a zoomable treemap.",
+  "about.featScanDesc": "Parallel traversal, largest items, tree explorer and a zoomable treemap.",
   "about.featSearch": "Search",
   "about.featSearchDesc": "Instant fuzzy search with type / extension / size / date filters.",
   "about.featApps": "Applications",

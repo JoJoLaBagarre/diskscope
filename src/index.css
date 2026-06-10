@@ -41,7 +41,12 @@
   --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.07);
   --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08);
 
-  font-family: "Segoe UI", Inter, system-ui, -apple-system, sans-serif;
+  font-family:
+    "Segoe UI",
+    Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 14px;
   color: var(--text);
   background-color: var(--bg);
@@ -167,7 +172,9 @@ button {
   border-radius: var(--radius-sm);
   text-align: left;
   font-weight: 500;
-  transition: background 0.12s, color 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s;
 }
 .nav-item:hover {
   background: var(--surface-hover);
@@ -253,7 +260,9 @@ button {
   background: var(--surface);
   color: var(--text);
   font-weight: 500;
-  transition: background 0.12s, border-color 0.12s;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
 }
 .btn:hover {
   background: var(--surface-hover);
@@ -360,7 +369,10 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
-  transition: border-color 0.12s, box-shadow 0.12s, transform 0.04s;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s,
+    transform 0.04s;
 }
 .volume-card:hover {
   border-color: var(--accent);
@@ -914,6 +926,15 @@ button {
 }
 .tile.interactive {
   cursor: pointer;
+}
+/* Keyboard focus: draw an accent border on the tile itself (an outline on the
+   <g> renders inconsistently across engines). */
+.tile.interactive:focus-visible {
+  outline: none;
+}
+.tile.interactive:focus-visible .tile-rect {
+  stroke: var(--accent);
+  stroke-width: 2.5;
 }
 .tile rect {
   transition: fill-opacity 0.1s;

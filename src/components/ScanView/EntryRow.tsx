@@ -58,10 +58,20 @@ export function EntryRow({
       <div className="entry-mtime">{fmt.date(entry.mtime)}</div>
 
       <div className="entry-actions" onClick={(e) => e.stopPropagation()}>
-        <button className="icon-btn" title={t("action.reveal")} onClick={() => onReveal(entry)}>
+        <button
+          className="icon-btn"
+          title={t("action.reveal")}
+          aria-label={t("action.reveal")}
+          onClick={() => onReveal(entry)}
+        >
           <RevealIcon />
         </button>
-        <button className="icon-btn danger" title={t("action.trash")} onClick={() => onTrash(entry)}>
+        <button
+          className="icon-btn danger"
+          title={t("action.trash")}
+          aria-label={t("action.trash")}
+          onClick={() => onTrash(entry)}
+        >
           <TrashIcon />
         </button>
       </div>
