@@ -84,9 +84,31 @@ export function Treemap({ rootPath }: { rootPath: string }) {
                 key={tile.entry.id}
                 transform={`translate(${tile.x},${tile.y})`}
                 className={interactive ? "tile interactive" : "tile"}
+                role={interactive ? "button" : undefined}
+                tabIndex={interactive ? 0 : undefined}
+                aria-label={
+                  interactive
+                    ? t("treemap.tileLabel", {
+                        name: tile.entry.name,
+                        size: fmt.bytes(tile.entry.size),
+                      })
+                    : undefined
+                }
                 onClick={() => onTileClick(tile.entry)}
+                onKeyDown={
+                  interactive
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onTileClick(tile.entry);
+                        }
+                      }
+                    : undefined
+                }
                 onMouseEnter={() => setHover(tile.entry)}
                 onMouseLeave={() => setHover((h) => (h === tile.entry ? null : h))}
+                onFocus={() => setHover(tile.entry)}
+                onBlur={() => setHover((h) => (h === tile.entry ? null : h))}
               >
                 <rect
                   width={tile.w}
@@ -102,11 +124,21 @@ export function Treemap({ rootPath }: { rootPath: string }) {
                     <clipPath id={`clip-${tile.entry.id}`}>
                       <rect width={tile.w - 10} height={tile.h - 6} x={5} y={3} />
                     </clipPath>
-                    <text clipPath={`url(#clip-${tile.entry.id})`} x={7} y={16} className="tile-label">
+                    <text
+                      clipPath={`url(#clip-${tile.entry.id})`}
+                      x={7}
+                      y={16}
+                      className="tile-label"
+                    >
                       {tile.entry.name}
                     </text>
                     {tile.h > 38 && (
-                      <text clipPath={`url(#clip-${tile.entry.id})`} x={7} y={31} className="tile-sublabel">
+                      <text
+                        clipPath={`url(#clip-${tile.entry.id})`}
+                        x={7}
+                        y={31}
+                        className="tile-sublabel"
+                      >
                         {fmt.bytes(tile.entry.size)}
                       </text>
                     )}

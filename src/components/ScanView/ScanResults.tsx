@@ -36,10 +36,19 @@ export function ScanResults({
               <span>{t("results.files", { count: fmt.count(summary.file_count) })}</span>
               <span>{t("results.folders", { count: fmt.count(summary.dir_count) })}</span>
               {summary.errors > 0 && (
-                <span className="warn">{t("results.ignored", { count: fmt.count(summary.errors) })}</span>
+                <span
+                  className="warn"
+                  title={
+                    summary.inaccessible.length > 0 ? summary.inaccessible.join("\n") : undefined
+                  }
+                >
+                  {t("results.ignored", { count: fmt.count(summary.errors) })}
+                </span>
               )}
               {summary.from_cache && (
-                <span className="cache">{t("results.cache", { date: fmt.date(summary.scanned_at) })}</span>
+                <span className="cache">
+                  {t("results.cache", { date: fmt.date(summary.scanned_at) })}
+                </span>
               )}
             </div>
           </div>
@@ -56,13 +65,22 @@ export function ScanResults({
       </div>
 
       <div className="tabs">
-        <button className={`tab${tab === "largest" ? " active" : ""}`} onClick={() => setTab("largest")}>
+        <button
+          className={`tab${tab === "largest" ? " active" : ""}`}
+          onClick={() => setTab("largest")}
+        >
           {t("results.tabLargest")}
         </button>
-        <button className={`tab${tab === "explorer" ? " active" : ""}`} onClick={() => setTab("explorer")}>
+        <button
+          className={`tab${tab === "explorer" ? " active" : ""}`}
+          onClick={() => setTab("explorer")}
+        >
           {t("results.tabExplorer")}
         </button>
-        <button className={`tab${tab === "treemap" ? " active" : ""}`} onClick={() => setTab("treemap")}>
+        <button
+          className={`tab${tab === "treemap" ? " active" : ""}`}
+          onClick={() => setTab("treemap")}
+        >
           {t("results.tabTreemap")}
         </button>
       </div>

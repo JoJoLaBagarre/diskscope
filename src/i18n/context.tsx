@@ -2,10 +2,7 @@ import { createContext, useContext, useMemo } from "react";
 import type { ReactNode } from "react";
 import { translate, type Lang, type TranslationKey } from "./index";
 
-export type TFunction = (
-  key: TranslationKey,
-  vars?: Record<string, string | number>,
-) => string;
+export type TFunction = (key: TranslationKey, vars?: Record<string, string | number>) => string;
 
 interface I18nValue {
   lang: Lang;

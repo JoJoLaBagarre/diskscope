@@ -15,6 +15,13 @@ use state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Structured logging, silent unless RUST_LOG is set (e.g.
+    // `RUST_LOG=diskscope=debug`). `try_init` so a second call (mobile
+    // re-entry / tests) can't panic.
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .try_init();
+
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())

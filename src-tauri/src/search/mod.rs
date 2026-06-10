@@ -145,7 +145,22 @@ impl SearchIndex {
     /// Run a query. An empty query returns filtered entries sorted by size, so
     /// the filters are usable on their own.
     pub fn query(&self, raw: &str, f: &SearchFilters, limit: usize) -> Vec<SearchHit> {
-        let q = raw.trim();
+        /// Cap on query length handed to the fuzzy matcher. Guards against a
+        /// pathological input (e.g. a multi-megabyte paste) driving the parser
+        /// into pathological work; far longer than any real file-name query.
+        const MAX_QUERY_LEN: usize = 1024;
+
+        let trimmed = raw.trim();
+        // Truncate on a char boundary so multi-byte UTF-8 can never panic, and
+        // only allocate in the rare over-length case.
+        let truncated: String;
+        let q: &str = match trimmed.char_indices().nth(MAX_QUERY_LEN) {
+            Some((byte_idx, _)) => {
+                truncated = trimmed[..byte_idx].to_string();
+                &truncated
+            }
+            None => trimmed,
+        };
 
         if q.is_empty() {
             let mut v: Vec<&IndexEntry> =

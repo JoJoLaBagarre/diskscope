@@ -1,6 +1,6 @@
 [package]
 name = "diskscope"
-version = "1.0.1"
+version = "1.1.1"
 description = "DiskScope — disk space scanner, fuzzy search & application uninstaller"
 authors = ["DiskScope"]
 edition = "2021"
@@ -52,4 +52,13 @@ notify = "6"
 # Errors
 anyhow = "1"
 thiserror = "2"
+
+# Concurrency — non-poisoning locks so a panicked thread can't wedge every
+# later command on a poisoned Mutex/RwLock.
+parking_lot = "0.12"
+
+# Observability — structured logs, emitted only when RUST_LOG is set so normal
+# runs stay silent. Helps diagnose field issues (e.g. why a cache failed to save).
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 

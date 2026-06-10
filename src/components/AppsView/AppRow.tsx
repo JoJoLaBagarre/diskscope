@@ -7,8 +7,16 @@ import { useFormat } from "../../hooks/useFormat";
 // <img> can't decode) and reading them would require enabling a broad asset
 // protocol scope. A colored monogram is consistent, safe, and never breaks.
 const TILE_COLORS = [
-  "#2563eb", "#7c3aed", "#0ea5e9", "#0d9488", "#16a34a",
-  "#ca8a04", "#dc2626", "#db2777", "#4f46e5", "#ea580c",
+  "#2563eb",
+  "#7c3aed",
+  "#0ea5e9",
+  "#0d9488",
+  "#16a34a",
+  "#ca8a04",
+  "#dc2626",
+  "#db2777",
+  "#4f46e5",
+  "#ea580c",
 ];
 
 function colorFor(name: string): string {
@@ -45,9 +53,7 @@ export function AppRow({
         </span>
       </div>
 
-      <div className="app-size">
-        {app.size_estimate ? fmt.bytes(app.size_estimate) : "—"}
-      </div>
+      <div className="app-size">{app.size_estimate ? fmt.bytes(app.size_estimate) : "—"}</div>
 
       <button className="btn btn-danger-soft" onClick={() => onUninstall(app)}>
         {t("apps.uninstall")}

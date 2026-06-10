@@ -29,6 +29,8 @@ export interface ScanSummary {
   file_count: number;
   dir_count: number;
   errors: number;
+  /** Bounded sample of paths skipped during the scan (permission denied, etc.). */
+  inaccessible: string[];
   scanned_at: number;
   from_cache: boolean;
 }
@@ -101,11 +103,7 @@ export interface SearchFilters {
 
 /* ---- installed apps (mirror of `apps::*`) ---- */
 
-export type UninstallKind =
-  | "command"
-  | "shell_execute_runas"
-  | "appx"
-  | "trash_bundle";
+export type UninstallKind = "command" | "shell_execute_runas" | "appx" | "trash_bundle";
 
 export interface UninstallAction {
   kind: UninstallKind;

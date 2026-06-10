@@ -17,7 +17,9 @@ export function SearchView() {
 
   useEffect(() => {
     let un: (() => void) | undefined;
-    onSearchStale(() => setStale(true)).then((u) => (un = u));
+    onSearchStale(() => setStale(true))
+      .then((u) => (un = u))
+      .catch(() => {});
     return () => un?.();
   }, []);
 
@@ -46,7 +48,14 @@ export function SearchView() {
     return (
       <EmptyState
         icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <circle cx="11" cy="11" r="7" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -68,7 +77,14 @@ export function SearchView() {
     <div className="search">
       <div className="search-bar">
         <span className="search-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <circle cx="11" cy="11" r="7" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -81,7 +97,12 @@ export function SearchView() {
           onChange={(e) => s.setQuery(e.target.value)}
         />
         {s.query && (
-          <button className="search-clear" onClick={() => s.setQuery("")} title={t("search.clear")}>
+          <button
+            className="search-clear"
+            onClick={() => s.setQuery("")}
+            title={t("search.clear")}
+            aria-label={t("search.clear")}
+          >
             ✕
           </button>
         )}
@@ -94,7 +115,9 @@ export function SearchView() {
       <div className="search-meta">
         <span className="muted">{resultsLabel}</span>
         {s.stats && (
-          <span className="muted">{t("search.indexed", { count: fmt.count(s.stats.indexed) })}</span>
+          <span className="muted">
+            {t("search.indexed", { count: fmt.count(s.stats.indexed) })}
+          </span>
         )}
       </div>
 

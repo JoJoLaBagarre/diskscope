@@ -45,9 +45,7 @@ export function AppsView() {
     let list = apps.filter((a) => {
       if (drive !== "all" && driveOf(a.install_location) !== drive) return false;
       if (!q) return true;
-      return (
-        a.name.toLowerCase().includes(q) || (a.publisher?.toLowerCase().includes(q) ?? false)
-      );
+      return a.name.toLowerCase().includes(q) || (a.publisher?.toLowerCase().includes(q) ?? false);
     });
     list = [...list].sort((a, b) => {
       let c: number;
@@ -93,7 +91,14 @@ export function AppsView() {
     return (
       <EmptyState
         icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <circle cx="12" cy="12" r="9" />
             <line x1="12" y1="8" x2="12" y2="13" />
             <line x1="12" y1="16.5" x2="12" y2="16.5" />

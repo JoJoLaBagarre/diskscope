@@ -91,11 +91,7 @@ impl AppManager for WindowsAppManager {
             // is a single path segment — reject anything that could traverse to
             // an arbitrary (user-writable) registry key whose UninstallString we
             // would otherwise execute.
-            if sub_name.is_empty()
-                || sub_name.contains('\\')
-                || sub_name.contains('/')
-                || sub_name.contains("..")
-            {
+            if !is_valid_subkey(sub_name) {
                 return None;
             }
             for (hive, path, source) in uninstall_roots() {
@@ -206,32 +202,63 @@ fn get_dword(key: &RegKey, name: &str) -> Option<u32> {
     key.get_value::<u32, _>(name).ok()
 }
 
-/// Split a Windows command line into (program, args), honoring quotes. Used to
-/// turn a registry `UninstallString` into something ShellExecute can run with
-/// elevation.
-fn split_commandline(cmd: &str) -> (String, Vec<String>) {
-    let cmd = cmd.trim();
-    let mut tokens: Vec<String> = Vec::new();
-    let mut cur = String::new();
-    let mut in_quotes = false;
+/// Whether `sub_name` is a safe single-segment registry subkey name. Rejects
+/// empty names and any separator/parent reference that could traverse out of the
+/// `Uninstall` hive to an attacker-writable key whose `UninstallString` we would
+/// then execute with elevation. This is the security boundary for `find()`.
+fn is_valid_subkey(sub_name: &str) -> bool {
+    !(sub_name.is_empty()
+        || sub_name.contains('\\')
+        || sub_name.contains('/')
+        || sub_name.contains(".."))
+}
 
-    for ch in cmd.chars() {
-        match ch {
-            '"' => in_quotes = !in_quotes,
-            c if c.is_whitespace() && !in_quotes => {
-                if !cur.is_empty() {
-                    tokens.push(std::mem::take(&mut cur));
-                }
-            }
-            c => cur.push(c),
-        }
+/// Split a Windows command line into (program, args) using the OS parser
+/// `CommandLineToArgvW`, so quoting and backslash-escaping are tokenized exactly
+/// the way Windows itself would. Used to turn a registry `UninstallString` into
+/// something ShellExecute can run with elevation. The hand-rolled predecessor
+/// mishandled escaped quotes (`\"`); deferring to the API removes that class of
+/// bug.
+fn split_commandline(cmd: &str) -> (String, Vec<String>) {
+    use std::os::windows::ffi::OsStrExt;
+    use windows::core::PCWSTR;
+    use windows::Win32::Foundation::{LocalFree, HLOCAL};
+    use windows::Win32::UI::Shell::CommandLineToArgvW;
+
+    let cmd = cmd.trim();
+    // `CommandLineToArgvW("")` returns the current executable's own path — not
+    // what we want here. An empty UninstallString simply has no program.
+    if cmd.is_empty() {
+        return (String::new(), Vec::new());
     }
-    if !cur.is_empty() {
-        tokens.push(cur);
-    }
-    if tokens.is_empty() {
+
+    let wide: Vec<u16> = std::ffi::OsStr::new(cmd)
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+
+    let mut argc: i32 = 0;
+    // SAFETY: `wide` is a valid NUL-terminated UTF-16 buffer that outlives the
+    // call and `argc` is a valid out-pointer. The returned array, when non-null,
+    // must be released exactly once with `LocalFree` (done below).
+    let argv = unsafe { CommandLineToArgvW(PCWSTR(wide.as_ptr()), &mut argc) };
+    if argv.is_null() || argc <= 0 {
+        // Never panic: fall back to treating the whole string as the program.
         return (cmd.to_string(), Vec::new());
     }
+
+    // SAFETY: on success `argv` points to `argc` consecutive valid `PWSTR`s; we
+    // only read them, copying each into an owned `String` before freeing.
+    let mut tokens: Vec<String> = unsafe { std::slice::from_raw_parts(argv, argc as usize) }
+        .iter()
+        .map(|p| unsafe { p.to_string().unwrap_or_default() })
+        .collect();
+
+    // SAFETY: `argv` was allocated by `CommandLineToArgvW`; free it exactly once.
+    unsafe {
+        let _ = LocalFree(HLOCAL(argv as *mut core::ffi::c_void));
+    }
+
     let program = tokens.remove(0);
     (program, tokens)
 }
@@ -401,5 +428,66 @@ fn fail(msg: &str) -> UninstallOutcome {
         stdout: String::new(),
         stderr: String::new(),
         message: msg.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // This module only compiles on Windows (gated by `apps/mod.rs`), so the
+    // CommandLineToArgvW-backed `split_commandline` is exercised on its real OS.
+    use super::*;
+
+    #[test]
+    fn split_quoted_program_with_spaces() {
+        // The classic vendor form: a quoted path containing spaces, then a flag.
+        let (program, args) = split_commandline("\"C:\\Program Files\\App\\unins.exe\" /S");
+        assert_eq!(program, "C:\\Program Files\\App\\unins.exe");
+        assert_eq!(args, vec!["/S".to_string()]);
+    }
+
+    #[test]
+    fn split_unquoted_program_and_args() {
+        let (program, args) = split_commandline("C:\\Tool\\setup.exe --uninstall --quiet");
+        assert_eq!(program, "C:\\Tool\\setup.exe");
+        assert_eq!(args, vec!["--uninstall".to_string(), "--quiet".to_string()]);
+    }
+
+    #[test]
+    fn split_msi_style_guid_arg_stays_one_token() {
+        let (program, args) =
+            split_commandline("MsiExec.exe /X{0AF1B2C3-0000-0000-0000-000000000000}");
+        assert_eq!(program, "MsiExec.exe");
+        assert_eq!(
+            args,
+            vec!["/X{0AF1B2C3-0000-0000-0000-000000000000}".to_string()]
+        );
+    }
+
+    #[test]
+    fn split_program_only_has_no_args() {
+        let (program, args) = split_commandline("unins000.exe");
+        assert_eq!(program, "unins000.exe");
+        assert!(args.is_empty());
+    }
+
+    #[test]
+    fn split_empty_or_whitespace_yields_empty() {
+        assert_eq!(split_commandline(""), (String::new(), Vec::new()));
+        assert_eq!(split_commandline("   "), (String::new(), Vec::new()));
+    }
+
+    #[test]
+    fn valid_subkey_accepts_single_segment() {
+        assert!(is_valid_subkey("{0AF1B2C3-1234-5678-9ABC-DEF012345678}"));
+        assert!(is_valid_subkey("Mozilla Firefox 100.0 (x64 en-US)"));
+    }
+
+    #[test]
+    fn valid_subkey_rejects_empty_and_traversal() {
+        assert!(!is_valid_subkey(""));
+        assert!(!is_valid_subkey(".."));
+        assert!(!is_valid_subkey("..\\..\\Run"));
+        assert!(!is_valid_subkey("foo\\bar"));
+        assert!(!is_valid_subkey("foo/bar"));
     }
 }

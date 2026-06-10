@@ -14,11 +14,18 @@ export function VolumePicker({
   const { t } = useTranslation();
   const fmt = useFormat();
   const [volumes, setVolumes] = useState<VolumeInfo[] | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     listVolumes()
-      .then(setVolumes)
-      .catch(() => setVolumes([]));
+      .then((v) => {
+        setVolumes(v);
+        setLoadFailed(false);
+      })
+      .catch(() => {
+        setVolumes([]);
+        setLoadFailed(true);
+      });
   }, []);
 
   async function browse() {
@@ -34,6 +41,7 @@ export function VolumePicker({
       </div>
 
       {error && <div className="banner error">{error}</div>}
+      {loadFailed && <div className="banner error">{t("picker.volumesError")}</div>}
 
       <div className="volume-grid">
         {volumes === null && <div className="muted">{t("picker.loadingVolumes")}</div>}
@@ -41,7 +49,11 @@ export function VolumePicker({
           const used = Math.max(0, v.total_bytes - v.free_bytes);
           const pct = v.total_bytes > 0 ? (used / v.total_bytes) * 100 : 0;
           return (
-            <button key={v.mount_point} className="volume-card" onClick={() => onOpen(v.mount_point)}>
+            <button
+              key={v.mount_point}
+              className="volume-card"
+              onClick={() => onOpen(v.mount_point)}
+            >
               <div className="volume-top">
                 <span className="volume-name">{v.name || v.mount_point}</span>
                 <span className="volume-fs">{v.file_system}</span>
@@ -52,7 +64,9 @@ export function VolumePicker({
               </div>
               <div className="volume-stats">
                 <span>{t("picker.free", { size: fmt.bytes(v.free_bytes) })}</span>
-                <span className="muted">{t("picker.outOf", { size: fmt.bytes(v.total_bytes) })}</span>
+                <span className="muted">
+                  {t("picker.outOf", { size: fmt.bytes(v.total_bytes) })}
+                </span>
               </div>
             </button>
           );

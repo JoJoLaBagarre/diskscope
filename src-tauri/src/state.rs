@@ -5,7 +5,9 @@
 //! The fuzzy search index is derived lazily from the current scan.
 
 use std::sync::atomic::AtomicBool;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::Arc;
+
+use parking_lot::{Mutex, RwLock};
 
 use crate::scan::ScanResult;
 use crate::search::SearchIndex;

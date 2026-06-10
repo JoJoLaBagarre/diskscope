@@ -21,11 +21,7 @@ interface TmNode {
   children?: TmNode[];
 }
 
-export function computeTiles(
-  entries: ScanEntry[],
-  width: number,
-  height: number,
-): Tile[] {
+export function computeTiles(entries: ScanEntry[], width: number, height: number): Tile[] {
   if (width <= 0 || height <= 0 || entries.length === 0) return [];
 
   const rootData: TmNode = { children: entries.map((entry) => ({ entry })) };
@@ -55,8 +51,16 @@ export function computeTiles(
 // A calm categorical palette; directories get the saturated fills, files a
 // muted grey-blue so the eye reads structure at a glance.
 const DIR_COLORS = [
-  "#3b82f6", "#6366f1", "#0ea5e9", "#14b8a6", "#8b5cf6",
-  "#f59e0b", "#ef4444", "#ec4899", "#10b981", "#f97316",
+  "#3b82f6",
+  "#6366f1",
+  "#0ea5e9",
+  "#14b8a6",
+  "#8b5cf6",
+  "#f59e0b",
+  "#ef4444",
+  "#ec4899",
+  "#10b981",
+  "#f97316",
 ];
 const FILE_COLOR = "#9aa9bd";
 

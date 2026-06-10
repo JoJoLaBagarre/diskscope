@@ -19,14 +19,9 @@ export function localeOf(lang: Lang): string {
 }
 
 /** Replace {name} tokens in a template with values from `vars`. */
-export function interpolate(
-  template: string,
-  vars?: Record<string, string | number>,
-): string {
+export function interpolate(template: string, vars?: Record<string, string | number>): string {
   if (!vars) return template;
-  return template.replace(/\{(\w+)\}/g, (m, key) =>
-    key in vars ? String(vars[key]) : m,
-  );
+  return template.replace(/\{(\w+)\}/g, (m, key) => (key in vars ? String(vars[key]) : m));
 }
 
 /** Pure translate function for a given language. */

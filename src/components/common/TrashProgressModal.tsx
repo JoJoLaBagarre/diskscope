@@ -1,5 +1,6 @@
 import { useTranslation } from "../../i18n/context";
 import { useElapsed } from "../../hooks/useElapsed";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import type { TrashProgress } from "../../types/models";
 
 /** Determinate progress overlay shown during a large batch delete, so the user
@@ -12,16 +13,32 @@ export function TrashProgressModal({
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
+  const ref = useFocusTrap<HTMLDivElement>();
   const elapsed = useElapsed(true);
   const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
 
   return (
     <div className="modal-backdrop">
-      <div className="modal">
-        <h2 className="modal-title">{t("trash.title")}</h2>
+      <div
+        className="modal"
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="trash-progress-title"
+      >
+        <h2 className="modal-title" id="trash-progress-title">
+          {t("trash.title")}
+        </h2>
 
         <div className="trash-progress">
-          <div className="progress-track">
+          <div
+            className="progress-track"
+            role="progressbar"
+            aria-label={t("trash.title")}
+            aria-valuenow={pct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
             <div className="progress-determinate" style={{ width: `${pct}%` }} />
           </div>
           <div className="trash-progress-stats">
