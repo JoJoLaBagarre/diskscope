@@ -16,7 +16,9 @@ export function OptionsView() {
   const [info, setInfo] = useState<AppInfo | null>(null);
 
   useEffect(() => {
-    appInfo().then(setInfo).catch(() => setInfo(null));
+    appInfo()
+      .then(setInfo)
+      .catch(() => setInfo(null));
   }, []);
 
   const themeOptions: { id: Theme; label: string }[] = [

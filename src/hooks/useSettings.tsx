@@ -21,8 +21,7 @@ function loadSettings(): Settings {
     const parsed = JSON.parse(raw) as Partial<Settings>;
     return {
       language: parsed.language === "fr" ? "fr" : "en",
-      theme:
-        parsed.theme === "light" || parsed.theme === "dark" ? parsed.theme : "system",
+      theme: parsed.theme === "light" || parsed.theme === "dark" ? parsed.theme : "system",
     };
   } catch {
     return DEFAULTS;
@@ -70,10 +69,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener("change", onChange);
   }, [settings.theme]);
 
-  const setLanguage = useCallback(
-    (language: Lang) => setSettings((s) => ({ ...s, language })),
-    [],
-  );
+  const setLanguage = useCallback((language: Lang) => setSettings((s) => ({ ...s, language })), []);
   const setTheme = useCallback((theme: Theme) => setSettings((s) => ({ ...s, theme })), []);
 
   return (

@@ -21,7 +21,9 @@ export function AboutView() {
   const [info, setInfo] = useState<AppInfo | null>(null);
 
   useEffect(() => {
-    appInfo().then(setInfo).catch(() => setInfo(null));
+    appInfo()
+      .then(setInfo)
+      .catch(() => setInfo(null));
   }, []);
 
   return (

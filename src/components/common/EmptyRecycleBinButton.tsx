@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { confirmAsk, emptyRecycleBin, notify, recycleBinInfo, recycleBinSupported } from "../../api/tauri";
+import {
+  confirmAsk,
+  emptyRecycleBin,
+  notify,
+  recycleBinInfo,
+  recycleBinSupported,
+} from "../../api/tauri";
 import { useTranslation } from "../../i18n/context";
 import { useFormat } from "../../hooks/useFormat";
 import { TrashIcon } from "./icons";

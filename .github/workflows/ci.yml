@@ -52,6 +52,15 @@ jobs:
       - name: Frontend typecheck
         run: npx tsc --noEmit
 
+      - name: Frontend lint
+        run: npx eslint .
+
+      - name: Frontend format check
+        run: npx prettier --check .
+
+      - name: Frontend tests
+        run: npm run test
+
       - name: Rust format check
         working-directory: src-tauri
         run: cargo fmt --all -- --check

@@ -1,0 +1,6 @@
+dist
+node_modules
+src-tauri
+package-lock.json
+# Prose docs are hand-formatted; Prettier only owns code/config.
+*.md
