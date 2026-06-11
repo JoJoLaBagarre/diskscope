@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { appInfo } from "../../api/tauri";
+import logo from "../../assets/logo.png";
 import { useTranslation } from "../../i18n/context";
 import type { TranslationKey } from "../../i18n";
 import type { AppInfo, View } from "../../types/models";
@@ -119,7 +120,7 @@ export function Sidebar({
   return (
     <aside className="sidebar">
       <div className="brand">
-        <span className="brand-mark">◆</span>
+        <img className="brand-logo" src={logo} alt="" aria-hidden="true" />
         <span className="brand-name">DiskScope</span>
       </div>
 

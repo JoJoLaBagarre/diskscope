@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Add changes here as they land; they roll into the next release. -->
 
+## [1.1.2] - 2026-06-11
+
+### Changed
+
+- **App icon & branding** — added the DiskScope logo (a disk under a magnifying
+  glass) as the application icon on every platform, and used it as the sidebar
+  brand mark in place of the placeholder glyph.
+
 ## [1.1.1] - 2026-06-10
 
 ### Added
@@ -107,7 +115,8 @@ First public release.
 - Linux and macOS application listing/uninstall are not yet implemented (the
   scanner and search are cross-platform). See the open `help wanted` issues.
 
-[Unreleased]: https://github.com/JoJoLaBagarre/diskscope/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/JoJoLaBagarre/diskscope/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/JoJoLaBagarre/diskscope/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/JoJoLaBagarre/diskscope/compare/v1.0.1...v1.1.1
 [1.0.1]: https://github.com/JoJoLaBagarre/diskscope/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/JoJoLaBagarre/diskscope/releases/tag/v1.0.0
