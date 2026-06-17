@@ -1,57 +1,86 @@
-name: "🐛 Bug report"
-description: Report something that isn't working correctly.
+name: "🐛 Bug report · Rapport de bug"
+description: "Report something that isn't working correctly · Signaler un dysfonctionnement"
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report a bug! Please fill in the fields
-        below so we can reproduce and fix it.
+        Thanks for taking the time to report a bug! Please fill in the fields below so we can reproduce and fix it.
+        Merci de prendre le temps de signaler un bug ! Remplis les champs pour qu'on puisse le reproduire et le corriger.
+
+        > 🔒 **Security issue? Do _not_ open a public issue.** Follow the private process in [SECURITY.md](https://github.com/JoJoLaBagarre/diskscope/blob/main/SECURITY.md).
+        > 🔒 **Faille de sécurité ? N'ouvre _pas_ d'issue publique.** Suis la procédure privée dans [SECURITY.md](https://github.com/JoJoLaBagarre/diskscope/blob/main/SECURITY.md).
+  - type: checkboxes
+    id: prechecks
+    attributes:
+      label: "Before reporting · Avant de signaler"
+      options:
+        - label: "I'm on the latest release · Je suis sur la dernière version"
+          required: true
+        - label: "I searched existing issues (open & closed) · J'ai cherché dans les issues existantes (ouvertes & fermées)"
+          required: true
   - type: textarea
     id: what-happened
     attributes:
-      label: What happened?
-      description: A clear description of the bug, and what you expected instead.
-      placeholder: When I delete many files at once, …
+      label: "What happened? · Que s'est-il passé ?"
+      description: "A clear description of the bug. · Une description claire du bug."
+      placeholder: "When I delete many files at once, … · Quand je supprime plusieurs fichiers, …"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: "What did you expect? · Qu'attendais-tu ?"
+      description: "What should have happened instead. · Ce qui aurait dû se passer."
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Steps to reproduce
-      description: How can we trigger it?
+      label: "Steps to reproduce · Étapes pour reproduire"
+      description: "How can we trigger it? · Comment le déclencher ?"
       placeholder: |
-        1. Scan drive C:
-        2. Select 50 files in the "Largest" tab
-        3. Click "Delete selection"
+        1. Scan drive C: · Scanner le disque C:
+        2. Select 50 files in the "Largest" tab · Sélectionner 50 fichiers dans l'onglet « Plus volumineux »
+        3. Click "Delete selection" · Cliquer « Supprimer la sélection »
         4. …
     validations:
       required: true
   - type: input
     id: version
     attributes:
-      label: DiskScope version
-      description: Shown in Options → Updates, or the About tab.
-      placeholder: "1.0.0"
+      label: "DiskScope version · Version de DiskScope"
+      description: "Shown in the About tab. · Affichée dans l'onglet À propos."
+      placeholder: "1.1.2"
     validations:
       required: true
   - type: dropdown
+    id: install
+    attributes:
+      label: "Install method · Méthode d'installation"
+      options:
+        - "Windows — MSI (.msi)"
+        - "Windows — NSIS (.exe)"
+        - "Linux — AppImage"
+        - "Linux — .deb"
+        - "Linux — .rpm"
+        - "macOS — .dmg"
+        - "Built from source · Compilé depuis les sources"
+    validations:
+      required: true
+  - type: input
     id: os
     attributes:
-      label: Operating system
-      options:
-        - Windows 11
-        - Windows 10
-        - Linux
-        - macOS
+      label: "OS and version · OS et version"
+      placeholder: "Windows 11 23H2 · macOS 14 · Ubuntu 24.04"
     validations:
       required: true
   - type: textarea
     id: logs
     attributes:
-      label: Logs / screenshots
+      label: "Logs & screenshots · Logs & captures"
       description: |
-        Anything that helps — a screenshot, an error message, or console output.
-        (Optional.)
+        Launch from a terminal with `RUST_LOG=diskscope=debug` and paste the relevant output; add screenshots/recordings for visual bugs.
+        Lance depuis un terminal avec `RUST_LOG=diskscope=debug` et colle la sortie utile ; ajoute des captures/vidéos pour les bugs visuels.
     validations:
       required: false
