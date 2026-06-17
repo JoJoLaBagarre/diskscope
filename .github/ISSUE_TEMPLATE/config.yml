@@ -1,6 +1,10 @@
 # Forces contributors to pick a template instead of opening a blank issue.
+# Force les contributeurs à choisir un modèle plutôt qu'une issue vide.
 blank_issues_enabled: false
 contact_links:
-  - name: 💬 Questions & discussion
+  - name: "🔒 Security vulnerability · Faille de sécurité"
+    url: https://github.com/JoJoLaBagarre/diskscope/security/advisories/new
+    about: "Report privately via a security advisory — never in a public issue. · À signaler en privé via une advisory — jamais dans une issue publique."
+  - name: "💬 Questions & discussion"
     url: https://github.com/JoJoLaBagarre/diskscope/discussions
-    about: For usage questions and general discussion, please use Discussions.
+    about: "For usage questions and general discussion, please use Discussions. · Pour les questions d'usage et discussions, utilise les Discussions."

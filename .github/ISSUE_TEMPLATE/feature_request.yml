@@ -1,33 +1,45 @@
-name: "✨ Feature request"
-description: Suggest an idea or improvement for DiskScope.
+name: "✨ Feature request · Demande de fonctionnalité"
+description: "Suggest an idea or improvement for DiskScope · Proposer une idée ou amélioration"
 labels: ["enhancement"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        DiskScope is a focused disk-analysis / search / uninstall tool — please keep suggestions within that scope.
+        DiskScope est un outil ciblé d'analyse / recherche / désinstallation — merci de rester dans ce périmètre.
+  - type: checkboxes
+    id: precheck
+    attributes:
+      label: "Before requesting · Avant de demander"
+      options:
+        - label: "I searched existing requests (open & closed) · J'ai cherché dans les demandes existantes"
+          required: true
   - type: textarea
     id: problem
     attributes:
-      label: What problem does this solve?
-      description: Describe the need or frustration behind the request.
-      placeholder: I often want to … but currently I have to …
+      label: "What problem does this solve? · Quel problème ça résout ?"
+      description: "Describe the need or frustration — the motivation, not only the solution. · Décris le besoin ou la frustration — la motivation, pas seulement la solution."
+      placeholder: "I often want to … but currently I have to … · J'aimerais souvent … mais je dois … "
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
-      label: Proposed solution
-      description: What would you like DiskScope to do?
+      label: "Proposed solution · Solution proposée"
+      description: "What would you like DiskScope to do? · Qu'aimerais-tu que DiskScope fasse ?"
     validations:
       required: true
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives considered
-      description: Other approaches you thought about. (Optional.)
+      label: "Alternatives considered · Alternatives envisagées"
+      description: "Other approaches you thought about. (Optional.) · Autres approches envisagées. (Optionnel.)"
     validations:
       required: false
   - type: checkboxes
-    id: scope
+    id: help
     attributes:
-      label: Scope
+      label: "Scope · Périmètre"
       options:
-        - label: I'd be willing to help implement this.
+        - label: "I'd be willing to help implement this. · Je suis prêt·e à aider à l'implémenter."
           required: false
