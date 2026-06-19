@@ -285,6 +285,25 @@ button {
   cursor: not-allowed;
 }
 
+/* ===== Keyboard focus ring (a11y) =====
+   Shared indicator for every custom-styled <button>. `:focus-visible` fires for
+   keyboard / assistive-tech navigation but NOT plain mouse clicks, so pointer
+   users see nothing while keyboard users get a clear accent ring (WCAG 2.4.7).
+   Text inputs (.drive-select, .apps-filter, search fields) are excluded on
+   purpose — they already show their own focus state via :focus / :focus-within. */
+.nav-item:focus-visible,
+.btn:focus-visible,
+.btn-sm:focus-visible,
+.icon-btn:focus-visible,
+.tab:focus-visible,
+.seg-btn:focus-visible,
+.th:focus-visible,
+.crumb:focus-visible,
+.volume-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* ===== Empty / placeholder state ===== */
 .empty-state {
   height: 100%;
@@ -941,8 +960,16 @@ button {
   stroke: var(--accent);
   stroke-width: 2.5;
 }
-.tile rect {
+/* Hover/focus highlight is pure CSS: the React tile array no longer re-renders on
+   mouse move (only the toolbar label reads hover state), so moving across a few
+   hundred tiles costs no SVG reconciliation. */
+.tile-rect {
+  fill-opacity: 0.86;
   transition: fill-opacity 0.1s;
+}
+.tile:hover .tile-rect,
+.tile.interactive:focus-visible .tile-rect {
+  fill-opacity: 1;
 }
 .tile-label {
   font-size: 11px;
@@ -955,6 +982,76 @@ button {
   font-size: 10px;
   fill: rgba(255, 255, 255, 0.85);
   pointer-events: none;
+}
+
+/* ===========================================================================
+   By-type breakdown table
+   =========================================================================== */
+.ext-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.ext-head,
+.ext-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.4fr) 80px minmax(140px, 1fr) 120px;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+}
+.ext-head {
+  height: 38px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.ext-head .num,
+.ext-row .num {
+  text-align: right;
+}
+.ext-row {
+  height: 44px;
+  border-bottom: 1px solid var(--border);
+}
+.ext-row:hover {
+  background: var(--surface-hover);
+}
+.ext-badge {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.ext-share {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ext-share .entry-bar {
+  flex: 1;
+}
+.ext-percent {
+  min-width: 44px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+}
+.ext-size {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Visually hidden, but available to screen readers (live-region announcements). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
 /* ===========================================================================

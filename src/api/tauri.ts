@@ -4,9 +4,11 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { ask, message, open } from "@tauri-apps/plugin-dialog";
+import { ask, message, open, save } from "@tauri-apps/plugin-dialog";
 import type {
   AppInfo,
+  ExportFormat,
+  ExtBucket,
   InstalledApp,
   ItemKind,
   ScanEntry,
@@ -62,6 +64,16 @@ export function getChildren(
 
 export function getLargest(kind: ItemKind, limit: number): Promise<ScanEntry[]> {
   return invoke<ScanEntry[]>("get_largest", { kind, limit });
+}
+
+/** Files aggregated by extension, largest buckets first. */
+export function extensionBreakdown(limit: number): Promise<ExtBucket[]> {
+  return invoke<ExtBucket[]>("extension_breakdown", { limit });
+}
+
+/** Write the current scan to `dest` as CSV or JSON. Resolves with the row count. */
+export function exportScan(dest: string, format: ExportFormat): Promise<number> {
+  return invoke<number>("export_scan", { dest, format });
 }
 
 export function revealPath(path: string): Promise<void> {
@@ -150,6 +162,18 @@ export function emptyRecycleBin(): Promise<void> {
 /** Native folder picker (dialog plugin). Returns `null` if cancelled. */
 export function pickFolder(): Promise<string | null> {
   return open({ directory: true, multiple: false }) as Promise<string | null>;
+}
+
+/** Native save dialog for the scan export. Returns the chosen path, or `null` if
+ *  cancelled. The CSV/JSON filters let the user (and OS) pick the format. */
+export function pickExportPath(defaultPath: string): Promise<string | null> {
+  return save({
+    defaultPath,
+    filters: [
+      { name: "CSV", extensions: ["csv"] },
+      { name: "JSON", extensions: ["json"] },
+    ],
+  }) as Promise<string | null>;
 }
 
 /** Native yes/no confirmation. Resolves `true` when the user accepts. */

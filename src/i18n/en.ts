@@ -58,7 +58,20 @@ export const en = {
   "results.tabLargest": "Largest",
   "results.tabExplorer": "Explorer",
   "results.tabTreemap": "Treemap",
+  "results.tabTypes": "By type",
+  "results.export": "Export",
+  "results.complete": "Analysis complete: {size}, {files} files, {folders} folders.",
   "results.emptyBin": "Empty Recycle Bin",
+
+  // ----- by-type breakdown -----
+  "types.type": "Type",
+  "types.count": "Files",
+  "types.noExt": "(no extension)",
+  "types.empty": "No files to break down.",
+
+  // ----- export -----
+  "export.done": "Exported {count} entries.",
+  "export.error": "Export failed.",
 
   // ----- table headers / kinds -----
   "table.name": "Name",

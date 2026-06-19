@@ -19,16 +19,40 @@ export function formatBytes(n: number, lang: Lang = "en"): string {
   return `${text} ${units[i]}`;
 }
 
+// `Intl.*Format` construction is comparatively expensive; cache one instance per
+// language so the hot scroll path (every visible row formats a date + count on
+// each render) reuses it instead of rebuilding the formatter each call.
+const dateFormatters: Partial<Record<Lang, Intl.DateTimeFormat>> = {};
+const countFormatters: Partial<Record<Lang, Intl.NumberFormat>> = {};
+
+function dateFormatter(lang: Lang): Intl.DateTimeFormat {
+  let f = dateFormatters[lang];
+  if (!f) {
+    f = new Intl.DateTimeFormat(localeOf(lang), {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+    dateFormatters[lang] = f;
+  }
+  return f;
+}
+
+function countFormatter(lang: Lang): Intl.NumberFormat {
+  let f = countFormatters[lang];
+  if (!f) {
+    f = new Intl.NumberFormat(localeOf(lang));
+    countFormatters[lang] = f;
+  }
+  return f;
+}
+
 export function formatDate(secs?: number | null, lang: Lang = "en"): string {
   if (!secs) return "—";
-  return new Date(secs * 1000).toLocaleDateString(localeOf(lang), {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return dateFormatter(lang).format(new Date(secs * 1000));
 }
 
 /** Grouped integer, e.g. 12345 → "12,345" (en) / "12 345" (fr). */
 export function formatCount(n: number, lang: Lang = "en"): string {
-  return n.toLocaleString(localeOf(lang));
+  return countFormatter(lang).format(n);
 }

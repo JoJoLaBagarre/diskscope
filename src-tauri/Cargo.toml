@@ -1,6 +1,6 @@
 [package]
 name = "diskscope"
-version = "1.1.2"
+version = "1.2.0"
 description = "DiskScope — disk space scanner, fuzzy search & application uninstaller"
 authors = ["DiskScope"]
 edition = "2021"

@@ -115,7 +115,6 @@ export function Treemap({ rootPath }: { rootPath: string }) {
                   height={tile.h}
                   rx={3}
                   fill={tileColor(tile.entry, i)}
-                  fillOpacity={hover === tile.entry ? 1 : 0.86}
                   className="tile-rect"
                   strokeWidth={1}
                 />

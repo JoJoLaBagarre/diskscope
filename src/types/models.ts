@@ -58,6 +58,17 @@ export interface ScanProgress {
 export type SortKey = "size" | "name" | "mtime";
 export type ItemKind = "files" | "dirs" | "all";
 
+/** Mirror of `scan::ExtBucket` (one row of the "by type" view). */
+export interface ExtBucket {
+  /** Lowercased extension without the dot; empty string = no extension. */
+  ext: string;
+  count: number;
+  size: number;
+  percent: number;
+}
+
+export type ExportFormat = "csv" | "json";
+
 /** Payload of the `trash://progress` event. */
 export interface TrashProgress {
   done: number;

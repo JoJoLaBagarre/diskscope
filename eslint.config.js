@@ -2,6 +2,7 @@ import js from "@eslint/js";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
+import reactCompiler from "eslint-plugin-react-compiler";
 import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
 
@@ -18,10 +19,15 @@ export default tseslint.config(
     plugins: {
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      "react-compiler": reactCompiler,
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      // Flags code the React Compiler can't safely optimize (rules-of-React
+      // violations), so we catch bail-outs at lint time rather than silently
+      // shipping an un-memoized component.
+      "react-compiler/react-compiler": "error",
     },
   },
   // Keep Prettier last so it disables any stylistic rules it owns.

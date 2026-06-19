@@ -1,14 +1,16 @@
 import { useState } from "react";
+import { exportScan, notify, pickExportPath } from "../../api/tauri";
 import { useTranslation } from "../../i18n/context";
 import { useFormat } from "../../hooks/useFormat";
-import type { ScanSummary } from "../../types/models";
+import type { ExportFormat, ScanSummary } from "../../types/models";
 import { EmptyRecycleBinButton } from "../common/EmptyRecycleBinButton";
 import { Footnote } from "../common/Footnote";
 import { Treemap } from "../Treemap/Treemap";
+import { ExtensionTable } from "./ExtensionTable";
 import { LargestTable } from "./LargestTable";
 import { TreeExplorer } from "./TreeExplorer";
 
-type Tab = "largest" | "explorer" | "treemap";
+type Tab = "largest" | "explorer" | "types" | "treemap";
 
 export function ScanResults({
   summary,
@@ -23,8 +25,30 @@ export function ScanResults({
   const fmt = useFormat();
   const [tab, setTab] = useState<Tab>("largest");
 
+  async function onExport() {
+    const dest = await pickExportPath("diskscope-export.csv");
+    if (!dest) return;
+    const format: ExportFormat = dest.toLowerCase().endsWith(".json") ? "json" : "csv";
+    try {
+      const count = await exportScan(dest, format);
+      await notify(t("export.done", { count: fmt.count(count) }));
+    } catch {
+      await notify(t("export.error"));
+    }
+  }
+
   return (
     <div className="results">
+      {/* Announce completion once for screen readers — the visual headline below
+          conveys the same numbers to sighted users. */}
+      <div className="sr-only" role="status">
+        {t("results.complete", {
+          size: fmt.bytes(summary.total_size),
+          files: fmt.count(summary.file_count),
+          folders: fmt.count(summary.dir_count),
+        })}
+      </div>
+
       <div className="results-header">
         <div className="results-headline">
           <div className="results-total">{fmt.bytes(summary.total_size)}</div>
@@ -55,6 +79,9 @@ export function ScanResults({
         </div>
         <div className="results-actions">
           <EmptyRecycleBinButton />
+          <button className="btn" onClick={onExport}>
+            {t("results.export")}
+          </button>
           <button className="btn" onClick={onChangeRoot}>
             {t("results.changeTarget")}
           </button>
@@ -78,6 +105,12 @@ export function ScanResults({
           {t("results.tabExplorer")}
         </button>
         <button
+          className={`tab${tab === "types" ? " active" : ""}`}
+          onClick={() => setTab("types")}
+        >
+          {t("results.tabTypes")}
+        </button>
+        <button
           className={`tab${tab === "treemap" ? " active" : ""}`}
           onClick={() => setTab("treemap")}
         >
@@ -87,6 +120,7 @@ export function ScanResults({
 
       {tab === "largest" && <LargestTable />}
       {tab === "explorer" && <TreeExplorer rootPath={summary.root_path} />}
+      {tab === "types" && <ExtensionTable />}
       {tab === "treemap" && <Treemap rootPath={summary.root_path} />}
 
       <Footnote>{t("scan.footnote")}</Footnote>

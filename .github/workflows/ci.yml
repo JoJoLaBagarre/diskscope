@@ -122,6 +122,15 @@ jobs:
       - name: Build (tauri, compile-only)
         run: npm run tauri build -- --no-bundle
 
+      # The security-critical uninstall tests (split_commandline / is_valid_subkey)
+      # are #[cfg(target_os = "windows")], so the Linux `check` job compiles them
+      # out and never runs them. Run the Rust suite on the Windows runner so that
+      # path-traversal-rejection boundary is actually exercised in CI.
+      - name: Rust tests (Windows-gated)
+        if: matrix.os == 'windows-latest'
+        working-directory: src-tauri
+        run: cargo test
+
   # ---------------------------------------------------------------------------
   # Dependency vulnerability audit (advisory DB for crates + npm).
   # Runs independently so it never blocks the build artifacts, but surfaces

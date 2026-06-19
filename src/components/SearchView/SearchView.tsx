@@ -113,7 +113,9 @@ export function SearchView() {
       {stale && <div className="banner warn-banner">{t("search.staleBanner")}</div>}
 
       <div className="search-meta">
-        <span className="muted">{resultsLabel}</span>
+        <span className="muted" role="status" aria-live="polite">
+          {resultsLabel}
+        </span>
         {s.stats && (
           <span className="muted">
             {t("search.indexed", { count: fmt.count(s.stats.indexed) })}
@@ -128,6 +130,7 @@ export function SearchView() {
           <VirtualTable
             rows={s.hits}
             rowHeight={52}
+            getKey={(h) => h.id}
             render={(h) => <SearchHitRow hit={h} onReveal={onReveal} onTrash={onTrash} />}
           />
         )}

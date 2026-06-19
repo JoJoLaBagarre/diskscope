@@ -7,7 +7,17 @@ const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
-  plugins: [react()],
+  // React Compiler (stable, v1) auto-memoizes components and hooks at build time,
+  // removing the need for manual React.memo/useMemo/useCallback on hot paths like
+  // the virtualized rows and treemap tiles. `target: "19"` => no runtime shim
+  // needed (this app is on React 19).
+  plugins: [
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", { target: "19" }]],
+      },
+    }),
+  ],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

@@ -10,7 +10,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::apps::{self, InstalledApp, UninstallOutcome};
-use crate::scan::{self, ItemKind, ScanEntry, ScanSummary, SortKey, VolumeInfo};
+use crate::scan::{self, ExtBucket, ItemKind, ScanEntry, ScanSummary, SortKey, VolumeInfo};
 use crate::search::{self, SearchFilters, SearchHit, SearchIndex};
 use crate::state::AppState;
 
@@ -169,6 +169,90 @@ pub fn get_largest(
     let guard = state.scan.read();
     let res = guard.as_ref().ok_or("Aucun scan en mémoire")?;
     Ok(res.largest(kind, limit))
+}
+
+/// Aggregate live files by extension for the "by type" view. `None`-equivalent
+/// error string when no scan is loaded.
+#[tauri::command]
+pub fn extension_breakdown(state: State<AppState>, limit: usize) -> Result<Vec<ExtBucket>, String> {
+    let limit = limit.min(MAX_QUERY_LIMIT);
+    let guard = state.scan.read();
+    let res = guard.as_ref().ok_or("no_scan_loaded")?;
+    Ok(res.extension_breakdown(limit))
+}
+
+/// One exported row. Serialized directly for JSON; written field-by-field for CSV.
+#[derive(Serialize)]
+struct ExportRow {
+    path: String,
+    name: String,
+    size: u64,
+    is_dir: bool,
+    mtime: Option<u64>,
+}
+
+/// Export every live entry of the current scan to `dest`, as CSV or JSON
+/// (`format` is "csv" or "json"). Returns the number of rows written. Rows are
+/// snapshotted under a brief read lock, then written off-thread.
+#[tauri::command]
+pub async fn export_scan(app: AppHandle, dest: String, format: String) -> Result<usize, String> {
+    let rows: Vec<ExportRow> = {
+        let state = app.state::<AppState>();
+        let guard = state.scan.read();
+        let res = guard.as_ref().ok_or("no_scan_loaded")?;
+        res.nodes
+            .iter()
+            .enumerate()
+            .filter(|(i, n)| !n.removed && *i != res.root)
+            .map(|(_, n)| ExportRow {
+                path: n.path.to_string_lossy().to_string(),
+                name: n.name.clone(),
+                size: n.size,
+                is_dir: n.is_dir,
+                mtime: n.mtime,
+            })
+            .collect()
+    };
+
+    let dest = PathBuf::from(dest);
+    tauri::async_runtime::spawn_blocking(move || write_export(&dest, &format, &rows))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn write_export(dest: &std::path::Path, format: &str, rows: &[ExportRow]) -> Result<usize, String> {
+    use std::io::Write;
+    let file = std::fs::File::create(dest).map_err(|e| e.to_string())?;
+    let mut w = std::io::BufWriter::new(file);
+    if format == "json" {
+        serde_json::to_writer(&mut w, rows).map_err(|e| e.to_string())?;
+    } else {
+        // CSV (default), RFC-4180 quoting.
+        writeln!(w, "path,name,size,is_dir,mtime").map_err(|e| e.to_string())?;
+        for r in rows {
+            writeln!(
+                w,
+                "{},{},{},{},{}",
+                csv_field(&r.path),
+                csv_field(&r.name),
+                r.size,
+                r.is_dir,
+                r.mtime.map(|m| m.to_string()).unwrap_or_default(),
+            )
+            .map_err(|e| e.to_string())?;
+        }
+    }
+    w.flush().map_err(|e| e.to_string())?;
+    Ok(rows.len())
+}
+
+/// Quote a CSV field per RFC 4180 when it contains a comma, quote, CR or LF.
+fn csv_field(s: &str) -> String {
+    if s.contains([',', '"', '\n', '\r']) {
+        format!("\"{}\"", s.replace('"', "\"\""))
+    } else {
+        s.to_string()
+    }
 }
 
 #[tauri::command]

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getChildren } from "../../api/tauri";
 import { useTranslation } from "../../i18n/context";
 import type { ScanEntry, SortKey } from "../../types/models";
@@ -18,13 +18,17 @@ export function TreeExplorer({ rootPath }: { rootPath: string }) {
   const [desc, setDesc] = useState(true);
   const [loading, setLoading] = useState(true);
   const sel = useSelection();
+  // `clear` is referentially stable (useCallback in useSelection); destructure it
+  // so the effect/callback can depend on it directly without pulling in the whole
+  // (per-render) `sel` object and re-running on every render.
+  const { clear: clearSel } = sel;
 
   const current = stack[stack.length - 1];
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    sel.clear();
+    clearSel();
     getChildren(current.id, sort, desc, 100000, 0)
       .then((r) => {
         if (alive) {
@@ -36,22 +40,18 @@ export function TreeExplorer({ rootPath }: { rootPath: string }) {
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current.id, sort, desc]);
+  }, [current.id, sort, desc, clearSel]);
 
-  const removeRows = useCallback((ids: number[]) => {
-    const set = new Set(ids);
-    setRows((rows) => rows.filter((r) => !set.has(r.id)));
-    sel.clear();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const removeRows = useCallback(
+    (ids: number[]) => {
+      const set = new Set(ids);
+      setRows((rows) => rows.filter((r) => !set.has(r.id)));
+      clearSel();
+    },
+    [clearSel],
+  );
 
   const { reveal, deleteOne, deleteMany, modal } = useTrashActions(removeRows);
-
-  const selectedSize = useMemo(
-    () => rows.filter((r) => sel.selected.has(r.id)).reduce((s, r) => s + r.size, 0),
-    [rows, sel.selected],
-  );
 
   function openDir(e: ScanEntry) {
     setStack((s) => [...s, { id: e.id, name: e.name }]);
@@ -92,7 +92,7 @@ export function TreeExplorer({ rootPath }: { rootPath: string }) {
       {sel.count > 0 && (
         <SelectionBar
           count={sel.count}
-          totalSize={selectedSize}
+          totalSize={sel.totalSize}
           onDelete={onDeleteSelected}
           onClear={sel.clear}
         />
@@ -119,11 +119,12 @@ export function TreeExplorer({ rootPath }: { rootPath: string }) {
         ) : (
           <VirtualTable
             rows={rows}
+            getKey={(e) => e.id}
             render={(e) => (
               <EntryRow
                 entry={e}
                 selected={sel.has(e.id)}
-                onToggleSelect={() => sel.toggle(e.id)}
+                onToggleSelect={() => sel.toggle(e.id, e.size)}
                 onOpen={openDir}
                 onReveal={reveal}
                 onTrash={deleteOne}

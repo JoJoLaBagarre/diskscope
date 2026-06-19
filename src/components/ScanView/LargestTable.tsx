@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getLargest } from "../../api/tauri";
 import { useTranslation } from "../../i18n/context";
 import type { TranslationKey } from "../../i18n";
@@ -21,11 +21,15 @@ export function LargestTable() {
   const [rows, setRows] = useState<ScanEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const sel = useSelection();
+  // `clear` is referentially stable (useCallback in useSelection); destructure it
+  // so the effect/callback can depend on it directly without pulling in the whole
+  // (per-render) `sel` object and re-running on every render.
+  const { clear: clearSel } = sel;
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    sel.clear();
+    clearSel();
     getLargest(kind, 500)
       .then((r) => {
         if (alive) {
@@ -37,22 +41,18 @@ export function LargestTable() {
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind]);
+  }, [kind, clearSel]);
 
-  const removeRows = useCallback((ids: number[]) => {
-    const set = new Set(ids);
-    setRows((rows) => rows.filter((r) => !set.has(r.id)));
-    sel.clear();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const removeRows = useCallback(
+    (ids: number[]) => {
+      const set = new Set(ids);
+      setRows((rows) => rows.filter((r) => !set.has(r.id)));
+      clearSel();
+    },
+    [clearSel],
+  );
 
   const { reveal, deleteOne, deleteMany, modal } = useTrashActions(removeRows);
-
-  const selectedSize = useMemo(
-    () => rows.filter((r) => sel.selected.has(r.id)).reduce((s, r) => s + r.size, 0),
-    [rows, sel.selected],
-  );
 
   function onDeleteSelected() {
     deleteMany(rows.filter((r) => sel.selected.has(r.id)));
@@ -80,7 +80,7 @@ export function LargestTable() {
       {sel.count > 0 && (
         <SelectionBar
           count={sel.count}
-          totalSize={selectedSize}
+          totalSize={sel.totalSize}
           onDelete={onDeleteSelected}
           onClear={sel.clear}
         />
@@ -101,12 +101,13 @@ export function LargestTable() {
         ) : (
           <VirtualTable
             rows={rows}
+            getKey={(e) => e.id}
             render={(e) => (
               <EntryRow
                 entry={e}
                 showPath
                 selected={sel.has(e.id)}
-                onToggleSelect={() => sel.toggle(e.id)}
+                onToggleSelect={() => sel.toggle(e.id, e.size)}
                 onReveal={reveal}
                 onTrash={deleteOne}
               />

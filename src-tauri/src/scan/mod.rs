@@ -82,6 +82,18 @@ pub struct ScanEntry {
     pub percent: f32,
 }
 
+/// One aggregated row for the "by file type" view: every file sharing an
+/// extension, with their combined size.
+#[derive(Debug, Clone, Serialize)]
+pub struct ExtBucket {
+    /// Lowercased extension without the dot; empty string means "no extension".
+    pub ext: String,
+    pub count: u64,
+    pub size: u64,
+    /// Combined size as a percentage of the scan total.
+    pub percent: f32,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VolumeInfo {
     pub name: String,
@@ -252,11 +264,59 @@ impl ScanResult {
                 }
             })
             .collect();
+        // Bounded top-N selection: partition the `limit` largest indices in O(n)
+        // with select_nth_unstable instead of fully sorting all n of them
+        // (O(n log n)), then sort just that small slice for display order. On a
+        // multi-million-node scan (ItemKind::All) this turns a full sort over
+        // every node into a linear partition plus a tiny sort.
+        if limit == 0 {
+            return Vec::new();
+        }
+        if limit < idxs.len() {
+            idxs.select_nth_unstable_by(limit - 1, |&a, &b| {
+                self.nodes[b].size.cmp(&self.nodes[a].size)
+            });
+            idxs.truncate(limit);
+        }
         idxs.sort_unstable_by(|&a, &b| self.nodes[b].size.cmp(&self.nodes[a].size));
-        idxs.truncate(limit);
         idxs.into_iter()
             .filter_map(|i| self.entry(i, denom))
             .collect()
+    }
+
+    /// Aggregate every live file by extension, returning the `limit` largest
+    /// buckets by combined size. Directories are excluded — only file bytes count.
+    pub fn extension_breakdown(&self, limit: usize) -> Vec<ExtBucket> {
+        use std::collections::HashMap;
+        let mut by_ext: HashMap<String, (u64, u64)> = HashMap::new();
+        for n in &self.nodes {
+            if n.removed || n.is_dir {
+                continue;
+            }
+            let (count, size) = by_ext.entry(ext_key(&n.name)).or_insert((0, 0));
+            *count += 1;
+            *size += n.size;
+        }
+        if limit == 0 {
+            return Vec::new();
+        }
+        let denom = self.total_size.max(1);
+        let mut buckets: Vec<ExtBucket> = by_ext
+            .into_iter()
+            .map(|(ext, (count, size))| ExtBucket {
+                ext,
+                count,
+                size,
+                percent: (size as f64 / denom as f64 * 100.0) as f32,
+            })
+            .collect();
+        // Same bounded top-N trick as `largest`: partition then sort the slice.
+        if limit < buckets.len() {
+            buckets.select_nth_unstable_by(limit - 1, |a, b| b.size.cmp(&a.size));
+            buckets.truncate(limit);
+        }
+        buckets.sort_unstable_by(|a, b| b.size.cmp(&a.size));
+        buckets
     }
 
     /// Read-only lookup of a live entry's path. `None` if the id is invalid or
@@ -311,6 +371,16 @@ fn now_secs() -> u64 {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0)
+}
+
+/// Lowercased extension without the dot, or "" for none. Returns "" (not `None`)
+/// so it can directly key a `HashMap`. A leading dot (".gitignore") and a
+/// trailing dot ("archive.") both count as "no extension".
+fn ext_key(name: &str) -> String {
+    match name.rfind('.') {
+        Some(dot) if dot > 0 && dot + 1 < name.len() => name[dot + 1..].to_lowercase(),
+        _ => String::new(),
+    }
 }
 
 #[cfg(test)]
@@ -415,6 +485,26 @@ mod tests {
     }
 
     #[test]
+    fn largest_respects_limit_via_bounded_selection() {
+        // limit < node count exercises the select_nth_unstable partition path,
+        // not just the full-sort fallback the other tests hit with limit=10.
+        // Non-root entries are {a:30, f1:10, f2:20, b:70}; the two largest are b, a.
+        let r = sample();
+        let top2 = r.largest(ItemKind::All, 2);
+        assert_eq!(
+            top2.iter().map(|e| e.name.as_str()).collect::<Vec<_>>(),
+            vec!["b", "a"]
+        );
+    }
+
+    #[test]
+    fn largest_zero_limit_is_empty() {
+        // limit == 0 must short-circuit (select_nth_unstable would panic on it).
+        let r = sample();
+        assert!(r.largest(ItemKind::All, 0).is_empty());
+    }
+
+    #[test]
     fn child_count_ignores_removed() {
         let mut r = sample();
         r.nodes[2].removed = true; // tombstone f1
@@ -476,5 +566,62 @@ mod tests {
     fn node_path_out_of_range_is_none() {
         let r = sample();
         assert!(r.node_path(999).is_none());
+    }
+
+    #[test]
+    fn extension_breakdown_groups_by_ext_and_ranks_by_size() {
+        let mut nodes = vec![
+            node("root", 175, true, None),
+            node("a.mp4", 100, false, Some(0)),
+            node("b.MP4", 50, false, Some(0)), // case-insensitive → same bucket
+            node("c.txt", 20, false, Some(0)),
+            node("README", 5, false, Some(0)), // no extension
+            node("sub", 0, true, Some(0)),     // directory → excluded
+        ];
+        nodes[0].children = vec![1, 2, 3, 4, 5];
+        let r = ScanResult {
+            root: 0,
+            root_path: PathBuf::from("root"),
+            nodes,
+            total_size: 175,
+            file_count: 4,
+            dir_count: 2,
+            errors: 0,
+            inaccessible: Vec::new(),
+            scanned_at: 0,
+        };
+        let b = r.extension_breakdown(10);
+        assert_eq!(b.len(), 3, "mp4, txt, and the empty-ext bucket");
+        assert_eq!(b[0].ext, "mp4");
+        assert_eq!(b[0].count, 2);
+        assert_eq!(b[0].size, 150); // 100 + 50, ranked first
+        assert_eq!(b[1].ext, "txt");
+        assert_eq!(b[2].ext, ""); // README, no extension
+    }
+
+    #[test]
+    fn extension_breakdown_respects_limit() {
+        let mut nodes = vec![
+            node("root", 60, true, None),
+            node("a.a", 30, false, Some(0)),
+            node("b.b", 20, false, Some(0)),
+            node("c.c", 10, false, Some(0)),
+        ];
+        nodes[0].children = vec![1, 2, 3];
+        let r = ScanResult {
+            root: 0,
+            root_path: PathBuf::from("root"),
+            nodes,
+            total_size: 60,
+            file_count: 3,
+            dir_count: 1,
+            errors: 0,
+            inaccessible: Vec::new(),
+            scanned_at: 0,
+        };
+        let b = r.extension_breakdown(2);
+        assert_eq!(b.len(), 2);
+        assert_eq!(b[0].ext, "a"); // 30
+        assert_eq!(b[1].ext, "b"); // 20 — "c" (10) dropped by the limit
     }
 }

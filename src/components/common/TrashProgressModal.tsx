@@ -41,7 +41,7 @@ export function TrashProgressModal({
           >
             <div className="progress-determinate" style={{ width: `${pct}%` }} />
           </div>
-          <div className="trash-progress-stats">
+          <div className="trash-progress-stats" role="status" aria-live="polite">
             <span>{t("trash.progress", { done: progress.done, total: progress.total })}</span>
             <span>{t("trash.elapsed", { seconds: elapsed })}</span>
           </div>

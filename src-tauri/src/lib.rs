@@ -12,6 +12,7 @@ mod search;
 mod state;
 
 use state::AppState;
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -36,7 +37,7 @@ pub fn run() {
             .plugin(tauri_plugin_process::init());
     }
 
-    builder
+    let app = builder
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             commands::app_info,
@@ -47,6 +48,8 @@ pub fn run() {
             commands::try_load_cache,
             commands::get_children,
             commands::get_largest,
+            commands::extension_breakdown,
+            commands::export_scan,
             commands::reveal_path,
             commands::trash_path,
             commands::start_trash,
@@ -59,6 +62,18 @@ pub fn run() {
             commands::list_apps,
             commands::uninstall_app,
         ])
-        .run(tauri::generate_context!())
+        .build(tauri::generate_context!())
         .expect("error while running tauri application");
+
+    app.run(|app_handle, event| {
+        // Tear the filesystem watcher down deterministically when the app exits,
+        // releasing its OS handle (ReadDirectoryChangesW on Windows) and the
+        // AppHandle clone it holds, instead of leaving it to linger until the
+        // process is reaped.
+        if let tauri::RunEvent::Exit = event {
+            if let Some(state) = app_handle.try_state::<AppState>() {
+                *state.watcher.lock() = None;
+            }
+        }
+    });
 }

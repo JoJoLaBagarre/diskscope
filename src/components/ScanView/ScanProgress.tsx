@@ -14,6 +14,11 @@ export function ScanProgress({
   return (
     <div className="scanning">
       <div className="scanning-card">
+        {/* Announce that a scan started; per-tick counters would be far too chatty
+            for a screen reader, so only this state change is surfaced. */}
+        <div className="sr-only" role="status">
+          {t("scan.progressTitle")}
+        </div>
         <div className="spinner" />
         <h2>{t("scan.progressTitle")}</h2>
 

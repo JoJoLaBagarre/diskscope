@@ -171,7 +171,9 @@ impl SearchIndex {
 
         let pattern = Pattern::parse(q, CaseMatching::Smart, Normalization::Smart);
 
-        let mut scored: Vec<(usize, u32)> = self
+        // (index, score, name_match): a basename hit is the strongest signal and
+        // always outranks a path-only hit.
+        let mut scored: Vec<(usize, u32, bool)> = self
             .entries
             .par_iter()
             .enumerate()
@@ -179,23 +181,38 @@ impl SearchIndex {
             .map_init(
                 || (Matcher::new(Config::DEFAULT), Vec::<char>::new()),
                 |(matcher, buf), (i, e)| {
-                    let hay = Utf32Str::new(&e.name, buf);
-                    pattern.score(hay, matcher).map(|s| (i, s))
+                    // Score the basename first; only fall back to the full path
+                    // when the name misses, so queries like "node_modules/react"
+                    // or "AppData/Local/Temp" can locate an entry by its folder
+                    // too — a core expectation of a disk tool.
+                    let name_score = {
+                        let hay = Utf32Str::new(&e.name, buf);
+                        pattern.score(hay, matcher)
+                    };
+                    if let Some(s) = name_score {
+                        return Some((i, s, true));
+                    }
+                    let path_score = {
+                        let hay = Utf32Str::new(&e.path, buf);
+                        pattern.score(hay, matcher)
+                    };
+                    path_score.map(|s| (i, s, false))
                 },
             )
             .flatten()
             .collect();
 
-        // Best score first; ties broken by larger size.
+        // Name matches first, then best score, then larger size.
         scored.par_sort_unstable_by(|a, b| {
-            b.1.cmp(&a.1)
+            b.2.cmp(&a.2)
+                .then_with(|| b.1.cmp(&a.1))
                 .then_with(|| self.entries[b.0].size.cmp(&self.entries[a.0].size))
         });
 
         scored
             .into_iter()
             .take(limit)
-            .map(|(i, s)| self.entries[i].to_hit(s))
+            .map(|(i, s, _)| self.entries[i].to_hit(s))
             .collect()
     }
 }
@@ -295,5 +312,65 @@ mod tests {
         assert_eq!(ext_of(".gitignore", false), None);
         assert_eq!(ext_of("noext", false), None);
         assert_eq!(ext_of("folder.thing", true), None);
+    }
+
+    #[test]
+    fn matches_path_when_name_does_not() {
+        let idx = SearchIndex {
+            entries: vec![
+                IndexEntry {
+                    id: 0,
+                    name: "main.rs".into(),
+                    path: "/proj/node_modules/main.rs".into(),
+                    size: 10,
+                    is_dir: false,
+                    mtime: None,
+                    ext: Some("rs".into()),
+                },
+                IndexEntry {
+                    id: 1,
+                    name: "readme.md".into(),
+                    path: "/proj/src/readme.md".into(),
+                    size: 20,
+                    is_dir: false,
+                    mtime: None,
+                    ext: Some("md".into()),
+                },
+            ],
+        };
+        // "node_modules" appears only in entry 0's path, not in any basename.
+        let hits = idx.query("node_modules", &SearchFilters::default(), 10);
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].id, 0);
+    }
+
+    #[test]
+    fn name_match_outranks_path_match() {
+        let idx = SearchIndex {
+            entries: vec![
+                IndexEntry {
+                    id: 0,
+                    name: "app.tsx".into(),
+                    path: "/proj/src/app.tsx".into(),
+                    size: 9999,
+                    is_dir: false,
+                    mtime: None,
+                    ext: Some("tsx".into()),
+                },
+                IndexEntry {
+                    id: 1,
+                    name: "src".into(),
+                    path: "/proj/src".into(),
+                    size: 1,
+                    is_dir: true,
+                    mtime: None,
+                    ext: None,
+                },
+            ],
+        };
+        // The folder literally named "src" (name match) ranks above the much
+        // larger file that only has "src" in its path.
+        let hits = idx.query("src", &SearchFilters::default(), 10);
+        assert_eq!(hits[0].id, 1);
     }
 }

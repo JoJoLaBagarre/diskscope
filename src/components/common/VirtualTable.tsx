@@ -8,10 +8,15 @@ export function VirtualTable<T>({
   rows,
   rowHeight = 46,
   render,
+  getKey,
 }: {
   rows: T[];
   rowHeight?: number;
   render: (item: T, index: number) => ReactNode;
+  /** Stable identity per row (e.g. `(e) => e.id`). When provided, React and the
+   *  virtualizer key rows by identity instead of index, so a re-sort or deletion
+   *  re-associates DOM nodes correctly instead of reusing them by position. */
+  getKey?: (item: T, index: number) => string | number;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
@@ -19,6 +24,7 @@ export function VirtualTable<T>({
     getScrollElement: () => parentRef.current,
     estimateSize: () => rowHeight,
     overscan: 14,
+    getItemKey: getKey ? (index) => getKey(rows[index], index) : undefined,
   });
 
   return (

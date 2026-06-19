@@ -89,10 +89,20 @@ pub fn walk<F: FnMut(&Progress)>(
     // instead of serializing on this consumer thread, which only assembles nodes.
     // Benchmarked on C:\Windows\System32 (31k entries, 13.6 GB): ~1.25 s → ~0.80 s
     // (≈36% faster) with byte-identical tallies vs. the old sequential path.
+    let walk_cancel = cancel.clone();
     let walk_iter = WalkDirGeneric::<EntryState>::new(root)
         .follow_links(false)
         .skip_hidden(false)
-        .process_read_dir(|_depth, _path, _read_dir_state, children| {
+        .process_read_dir(move |_depth, _path, _read_dir_state, children| {
+            // Once cancellation is requested, stop doing the expensive per-file
+            // metadata + on-disk-size syscalls on the rayon workers. The consumer
+            // loop below also bails on this flag, but the parallel producers can
+            // otherwise run seconds ahead of it on a huge tree — making a cancel
+            // feel frozen. Leaving client_state at its default is fine: those
+            // nodes are discarded the moment the consumer returns Cancelled.
+            if walk_cancel.load(Ordering::Relaxed) {
+                return;
+            }
             for child in children.iter_mut() {
                 let Ok(entry) = child else { continue };
                 let ft = entry.file_type;

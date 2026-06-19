@@ -57,7 +57,20 @@ export const fr: Record<TranslationKey, string> = {
   "results.tabLargest": "Plus volumineux",
   "results.tabExplorer": "Explorateur",
   "results.tabTreemap": "Treemap",
+  "results.tabTypes": "Par type",
+  "results.export": "Exporter",
+  "results.complete": "Analyse terminée : {size}, {files} fichiers, {folders} dossiers.",
   "results.emptyBin": "Vider la corbeille",
+
+  // ----- by-type breakdown -----
+  "types.type": "Type",
+  "types.count": "Fichiers",
+  "types.noExt": "(sans extension)",
+  "types.empty": "Aucun fichier à analyser.",
+
+  // ----- export -----
+  "export.done": "{count} entrées exportées.",
+  "export.error": "Échec de l'export.",
 
   // ----- table headers / kinds -----
   "table.name": "Nom",
