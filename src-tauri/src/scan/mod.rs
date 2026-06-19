@@ -311,11 +311,13 @@ impl ScanResult {
             })
             .collect();
         // Same bounded top-N trick as `largest`: partition then sort the slice.
+        // (`*_by_key(Reverse(..))` rather than `*_by(|a, b| b.cmp(a))` to satisfy
+        // clippy::unnecessary_sort_by.)
         if limit < buckets.len() {
-            buckets.select_nth_unstable_by(limit - 1, |a, b| b.size.cmp(&a.size));
+            buckets.select_nth_unstable_by_key(limit - 1, |b| std::cmp::Reverse(b.size));
             buckets.truncate(limit);
         }
-        buckets.sort_unstable_by(|a, b| b.size.cmp(&a.size));
+        buckets.sort_unstable_by_key(|b| std::cmp::Reverse(b.size));
         buckets
     }
 
